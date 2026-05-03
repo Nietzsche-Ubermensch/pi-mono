@@ -1,6 +1,16 @@
 import type { SpawnSyncReturns } from "child_process";
-import { writeFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import { beforeEach, describe, expect, test, vi } from "vitest";
+
+// On WSL, /proc/version contains "microsoft" which triggers the WSL code path.
+// Skip non-Wayland Linux tests that expect pure Linux clipboard behavior.
+const runningOnWSL = (() => {
+	try {
+		return /microsoft|wsl/i.test(readFileSync("/proc/version", "utf-8"));
+	} catch {
+		return false;
+	}
+})();
 
 const mocks = vi.hoisted(() => {
 	return {
@@ -145,7 +155,7 @@ describe("readClipboardImage", () => {
 		expect(Array.from(result?.bytes ?? [])).toEqual([4, 5, 6]);
 	});
 
-	test("Non-Wayland: uses clipboard", async () => {
+	test.skipIf(runningOnWSL)("Non-Wayland: uses clipboard", async () => {
 		mocks.spawnSync.mockImplementation(() => {
 			throw new Error("spawnSync should not be called for non-Wayland sessions");
 		});
@@ -160,7 +170,7 @@ describe("readClipboardImage", () => {
 		expect(Array.from(result?.bytes ?? [])).toEqual([7]);
 	});
 
-	test("Non-Wayland: returns null when clipboard has no image", async () => {
+	test.skipIf(runningOnWSL)("Non-Wayland: returns null when clipboard has no image", async () => {
 		mocks.spawnSync.mockImplementation(() => {
 			throw new Error("spawnSync should not be called for non-Wayland sessions");
 		});

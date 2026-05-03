@@ -4,6 +4,11 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+// registerHooks is only available in Node 21.7+. Skip tests on older versions.
+const nodeMajor = Number.parseInt(process.versions.node.split(".")[0], 10);
+const hasRegisterHooks =
+	nodeMajor >= 22 || (nodeMajor === 21 && Number.parseInt(process.versions.node.split(".")[1], 10) >= 7);
+
 const require = createRequire(import.meta.url);
 const tsxLoader = require.resolve("tsx/esm");
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -63,7 +68,7 @@ function runProbe(action: string): ProbeResult {
 	return JSON.parse(lastLine) as ProbeResult;
 }
 
-describe("lazy provider module loading", () => {
+describe.skipIf(!hasRegisterHooks)("lazy provider module loading", () => {
 	it("does not load provider SDKs when importing the root barrel", () => {
 		const result = runProbe("");
 		expect(result.loadedSpecifiers).toEqual([]);
